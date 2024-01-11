@@ -24,9 +24,8 @@ class JsonConverter {
         }
     }
 }
-Function JsonConverter{[JsonConverter]::new()}
 
-class UTILITIES {
+class PSUTILITIES {
     <#  Description -------------------------------------------------------
             This class parameter acts as a table for internal utilities.
             You may add more to the table as needed.
