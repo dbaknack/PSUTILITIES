@@ -41,12 +41,6 @@ Function PlatformParameters{
 }
 
 Function JsonConverter{
-    $myLocation         = Get-Location
-    $functionPath       = $myLocation.Path
-    $PlatformParameters = PlatformParameters
-    $Seperator          = $PlatformParameters.Separator
-    $classPath          = "{1}{0}{2}" -f $Seperator, $functionPath, "Classes.ps1"
-    
     $JSONConverter = [JsonConverter]::new()
     $JSONConverter
 }

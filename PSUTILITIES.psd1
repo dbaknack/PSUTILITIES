@@ -3,6 +3,8 @@
     ModuleVersion = '1.0.2'
     FunctionsToExport = @(
         "PSUTILITIES",
-        "Platform"
+        "Platform",
+        "PlatformParameters",
+        "JsonConverter"
     )
 }
