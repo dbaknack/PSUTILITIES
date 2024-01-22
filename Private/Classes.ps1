@@ -33,7 +33,7 @@ class PSUTILITIES {
     $INPUT_METHOD_PARAMS_TABLE = @{
         GetMethodParamstable        = @("MethodName")
         AddMethodParamstable        = @("MethodName","KeysList")
-        CreateItem                  = @("example","ItemType","Path","WithFeedBack")
+        CreateItem                  = @("ItemType","Path","WithFeedBack")
         UtilityHashtableValidation  = @("MethodName","UserInputHashtable")
         DisplayMessage              = @("Type","Category","Message")
         UpdateUtilitySettings       = @("UtilityName","UtilityParamsTable")
@@ -268,10 +268,6 @@ class PSUTILITIES {
         }
     }
     [psobject]GetUtilityMethodList([hashtable]$fromSender){
-        <#
-        # example usage:
-        CreateItem(@{GetAll = $true}) 
-        #>
         #region: Validation
         $METHOD_NAME        = "GetUtilityMethodList"
         $this.HashtableValidation(@{
@@ -307,11 +303,6 @@ class PSUTILITIES {
         }
         $this.HashtableValidation($validationParams)
 
-        if(@($fromSender.keys) -contains 'example'){
-            $this.GetExamples($METHOD_NAME)
-            return
-        }
-        
         [string]$path = $fromSender.Path
         [string]$itemType = $fromSender.ItemType
         $itemExists = $false
