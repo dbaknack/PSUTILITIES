@@ -33,7 +33,7 @@ class PSUTILITIES {
     $INPUT_METHOD_PARAMS_TABLE = @{
         GetMethodParamstable        = @("MethodName")
         AddMethodParamstable        = @("MethodName","KeysList")
-        CreateItem                  = @("ItemType","Path","WithFeedBack")
+        CreateItem                  = @("example","ItemType","Path","WithFeedBack")
         UtilityHashtableValidation  = @("MethodName","UserInputHashtable")
         DisplayMessage              = @("Type","Category","Message")
         UpdateUtilitySettings       = @("UtilityName","UtilityParamsTable")
@@ -56,7 +56,30 @@ class PSUTILITIES {
             Mute        = $false
         }
     }
-    $JsonConverter = (JsonConverter)
+    [psobject]GetExamples([string]$MethodName){
+        $exampleTable = @{
+            CreateItem = '
+            # Usage Decription:
+            #   -   CreateItem      Use this when you need to create a folder or file.
+            #
+            # --------------------------------------------------------------------------------------------------------
+            # Parameter Description:
+            #   -   ItemPath:       Can either be "Directory" or "File".
+            #   -   Path:           When ItemPath is "Directory", do not use a trailing "{0}". Can be either
+                                    a dynamic or full path.
+                                    When ItemPath is "File", either dynamic or a full path, include the file extension.
+            #   -   WithFeedBack:   Always leave as $false.
+            #
+            # --------------------------------------------------------------------------------------------------------
+            # Example:
+                CreateItem(
+                    ItemPath        = "Directory"
+                    Path            = ".{0}FolderName"
+                    WithFeedBack    = $false
+                )' -f (PlatformParameters).Separator
+        }
+        return $exampleTable.$MethodName
+    }
     [void]AddMethodParamstable([hashtable]$fromSender){
         <#
             #example usage:
@@ -274,15 +297,6 @@ class PSUTILITIES {
         return $myMethodList
     }
     [void]CreateItem([hashtable]$fromSender){
-        <#
-        # example usage:
-        $createItemParams = @{
-            ItemType        = 'Directory'
-            Path            = "./test2"
-            WithFeedBack    = $false
-        }
-        $UTILITY.CreateItem($createItemParams)
-        #>
         # all methods define there method name
         $METHOD_NAME        = "CreateItem"
         $exitConditionMet   = $false
@@ -293,6 +307,11 @@ class PSUTILITIES {
         }
         $this.HashtableValidation($validationParams)
 
+        if(@($fromSender.keys) -contains 'example'){
+            $this.GetExamples($METHOD_NAME)
+            return
+        }
+        
         [string]$path = $fromSender.Path
         [string]$itemType = $fromSender.ItemType
         $itemExists = $false
