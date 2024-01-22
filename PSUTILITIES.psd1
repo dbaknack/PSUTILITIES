@@ -3,6 +3,6 @@
     ModuleVersion = '1.0.2'
     FunctionsToExport = @(
         "PSUTILITIES",
-        "ModulePath"
+        "Platform"
     )
 }
