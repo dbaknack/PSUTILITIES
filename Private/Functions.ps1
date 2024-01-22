@@ -6,6 +6,7 @@ Function Platform {
     }
     foreach($os in $platform.keys){
         $myOS = [string]
+        $osFound = [bool]
         if($platform.$os){
             $osFound = $true
             $myOS =$os
@@ -14,7 +15,9 @@ Function Platform {
             $osFound = $false
         }
     }
-    $myOS
+    if($osFound){
+        $myOS
+    }
 }
 
 Function PlatformParameters{
