@@ -1,6 +1,6 @@
 @{
     RootModule = "./PSUTILITIES.psm1"
-    ModuleVersion = '0.0.1'
+    ModuleVersion = '1.0.2'
     FunctionsToExport = @(
         "PSUTILITIES",
         "ModulePath"
