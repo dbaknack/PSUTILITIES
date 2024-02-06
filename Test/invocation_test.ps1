@@ -1,10 +1,17 @@
 Import-Module .\PSUTILITIES.psd1
+$PSUTILITIES =  PSUTILITIES
+Import-Module .\PSLOGGER.psd1
+
+
+
+
+
 Remove-Module PSUTILITIES
 
 Get-Module
 Platform
 
-$PSUTILITIES =  PSUTILITIES
+
      #region: test ReadCacheConfiguration
      $fromSender = @{
         Configuration   = $configurationtable
@@ -125,10 +132,10 @@ $PSUTILITIES.CreateCache(@{
 # cache will only ignore overwrite if its null to begin with
 # when overwrite is true, it till update it, when its false, it wont update it
 $PSUTILITIES.CacheConfiguration(@{
-    Configuration = @{this = "that4"}
+    Configuration = @{this = "this is what i want to save"}
     Label       = "LoggingCache5"
     FolderPath  = ".\CacheFolder"
-    FileName    = "LoggingCache5"
+    FileName    = "LoggingCache6"
     Overwrite   = $true
 })
 
@@ -136,9 +143,24 @@ $PSUTILITIES.CacheConfiguration(@{
 # remeber that in order to read the cache you would have to first cached something
 # otherwsie you dont have a label to link to it
 $PSUTILITIES.ReadCache(@{
-    Label = "LoggingCache5"
+    Label = "Item2"
 })
 
 $PSUTILITIES.RemoveCache(@{
     Label = "LoggingCache5"
 })
+
+
+$list = @(
+    "item1","Item2",    "item3","Item4",    "item5","Item6"
+)
+
+foreach($listItem in $list){
+    $PSUTILITIES.CacheConfiguration(@{
+        Configuration = @{this = "this is what i want to save"}
+        Label       = $listItem
+        FolderPath  = ".\CacheFolder"
+        FileName    = $listItem
+        Overwrite   = $true
+    })
+}
