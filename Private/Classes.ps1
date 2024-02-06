@@ -32,18 +32,17 @@ class PSUTILITIES {
     #>
     $INPUT_METHOD_PARAMS_TABLE = @{
         GetMethodParamstable        = @("MethodName")
+        AddUtilitySettings          = @("Settings","Label")
         AddMethodParamstable        = @("MethodName","KeysList")
-        CreateItem                  = @("ItemType","Path","WithFeedBack")
-        UtilityHashtableValidation  = @("MethodName","UserInputHashtable")
+        CreateItem                  = @("ItemType","Path")
+        InputKeysValidation         = @("MethodName","UserInputHashtable")
         DisplayMessage              = @("Type","Category","Message")
-        UpdateUtilitySettings       = @("UtilityName","UtilityParamsTable")
-        GetUtilitySettingsTable     = @("UtilityName")
+        UpdateUtilitySettings       = @("Label","UtilityParamsTable")
+        GetUtilitySettingsTable     = @("Label")
         GetUtilityMethodList        = @("GetAllMyUtilities")
-        CreateCache                 = @("FolderPath","FileName")
-        CacheConfiguration          = @("Configuration","FolderPath","FileName","ConfigurationLabel")
-        ReadCacheConfiguration      = @("Configuration","FolderPath","FileName")
-        ReadMyCacheConfiguration    = @("ConfigurationLabel")
-        UpdateCacheConfiguration    = @("Configuration","ConfigurationLabel")
+        CreateCache                 = @("Label","FolderPath","FileName")
+        CacheConfiguration          = @("Label","FolderPath","FileName","Configuration","Overwrite")
+        ReadCache                   = @("Label")
     }
     <#  Description -------------------------------------------------------
             This class parameter is how you control some of the itilities
@@ -68,14 +67,12 @@ class PSUTILITIES {
             #   -   Path:           When ItemPath is "Directory", do not use a trailing "{0}". Can be either
                                     a dynamic or full path.
                                     When ItemPath is "File", either dynamic or a full path, include the file extension.
-            #   -   WithFeedBack:   Always leave as $false.
             #
             # --------------------------------------------------------------------------------------------------------
             # Example:
                 CreateItem(
                     ItemPath        = "Directory"
                     Path            = ".{0}FolderName"
-                    WithFeedBack    = $false
                 )' -f (PlatformParameters).Separator
         }
         return $exampleTable.$MethodName
@@ -95,7 +92,7 @@ class PSUTILITIES {
             MethodName          = $METHOD_NAME
             UserInputHashtable  = $fromSender
         }
-        $this.HashtableValidation($validationParams)
+        $this.InputKeysValidation($validationParams)
 
         # if hashtable is valid, the method name from sender is used to retried the values requested
         $getMethodParams = @{
@@ -143,7 +140,7 @@ class PSUTILITIES {
         }
         return $myMethodParams
     }
-    [void]HashtableValidation([hashtable]$fromSender){
+    [void]InputKeysValidation([hashtable]$fromSender){
         <#  Instructions -------------------------------------------------------
             Step 1:
                 In order to validate the hashtable you are using as input for a
@@ -159,7 +156,7 @@ class PSUTILITIES {
                 Within the method you intend to use this method in, you need to
                 invoke this method in the following way.
 
-                $UTILITY.HashtableValidation(@{
+                $UTILITY.InputKeysValidation(@{
                     MethodName          = 'MyMethodName'
                     UserInputHashtable  = $myHashtable
                 })
@@ -167,12 +164,12 @@ class PSUTILITIES {
         #region:    Self Validation
         <#
                 Remarks ---------------------------------------------------------
-                HashtableValidation validates itself each time other things need
+                InputKeysValidation validates itself each time other things need
                 to be validated. The commands defined within
                 #region: Self Validation are commands applicable to
-                HashtableValidation only.
+                InputKeysValidation only.
         #>
-        $METHOD_NAME                = "UtilityHashtableValidation"
+        $METHOD_NAME                = "InputKeysValidation"
         $METHOD_PARAMS_LIST         = @("MethodName","UserInputHashtable")
         [array]$USER_PARAMS_LIST    = $fromSender.Keys
         $exitConditionMet           = $false
@@ -270,7 +267,7 @@ class PSUTILITIES {
     [psobject]GetUtilityMethodList([hashtable]$fromSender){
         #region: Validation
         $METHOD_NAME        = "GetUtilityMethodList"
-        $this.HashtableValidation(@{
+        $this.InputKeysValidation(@{
             MethodName          = $METHOD_NAME
             UserInputHashtable  = $fromSender
         })
@@ -301,10 +298,35 @@ class PSUTILITIES {
             MethodName          = $METHOD_NAME
             UserInputHashtable  = $fromSender
         }
-        $this.HashtableValidation($validationParams)
 
-        [string]$path = $fromSender.Path
-        [string]$itemType = $fromSender.ItemType
+        $this.InputKeysValidation($validationParams)
+
+        [string]$path       = $fromSender.Path
+        [string]$itemType   = $fromSender.ItemType
+        $Platform  = PlatformParameters
+        if($Platform.OS -eq 'OnWindows'){
+            $charList = $path.ToCharArray()
+            if($charList -contains '/'){
+                $path = $path -replace '/',$Platform.Separator
+            }
+        }
+        if($Platform.OS -eq 'onMac'){
+            $charList = $path.ToCharArray()
+            if($charList -contains '\'){
+                $path = $path -replace '\',$Platform.Separator
+            }
+        }
+        if($Platform.OS -eq 'onLinux'){
+            $charList = $path.ToCharArray()
+            if($charList -contains '\'){
+                $path = $path -replace '\',$Platform.Separator
+            }
+        }
+        
+        if($itemType -match "Folder"){
+            $itemType = "Directory"
+        }
+
         $itemExists = $false
         if(-not(Test-Path -Path $path)){
             try{
@@ -317,38 +339,29 @@ class PSUTILITIES {
             if($exitConditionMet){
                 $msgError = "[{0}]:: {1}" -f $METHOD_NAME,"'$($fromSender.ItemType)' - '$($fromSender.Path)' was not able to be created"
                 Write-Error -Message $msgError; $Error[0]
-                return
+                return 
             }
+            $this.DisplayMessage(@{
+                Message 	= ("[{0}]:: {1}" -f $METHOD_NAME,"'$($fromSender.ItemType)' - '$($fromSender.Path)' created.")
+                Type 		= "debug"
+                Category 	= "debug"
+            })
         }else{
             $itemExists = $true
         }
 
         if($itemExists){
-            $msgError = "[{0}]:: {1}" -f $METHOD_NAME,"'$($fromSender.ItemType)' - '$($fromSender.Path)' was not able to be created, item alredy exists"
-            Write-Error -Message $msgError; $Error[0]
-            return
-        }
-
-        $withFeedBack = $fromSender.WithFeedBack
-        switch($withFeedBack){
-            $true{
-                $msgState = "[{0}]:: {1}" -f $METHOD_NAME,"'$($fromSender.ItemType)' - '$($fromSender.Path)' successfully created"
-                Write-Host $msgState -ForegroundColor Cyan
-            }
-            $false{
-                # nothing is displayed when the WithFeedback Option is false
-            }
-            default{
-                $msgError = "[{0}]:: {1}" -f $METHOD_NAME,"WithFeedBack parameter is undefined."
-                Write-Error -Message $msgError; $Error[0]
-                return
-            }
+            $this.DisplayMessage(@{
+                Message 	= ("[{0}]:: {1}" -f $METHOD_NAME,"'$($fromSender.ItemType)' - '$($fromSender.Path)' item already exists.")
+                Type 		= "debug"
+                Category 	= "debug"
+            })
         }
     }
     [psobject]GetUtilitySettingsTable([hashtable]$fromSender){
         <#
             # example usage
-            $util.GetUtilitySettingsTable(@{UtilityName = 'DisplayMessage'})
+            $util.GetUtilitySettingsTable(@{Label = 'DisplayMessage'})
         #>
 
         # all methods define there method name
@@ -359,10 +372,10 @@ class PSUTILITIES {
             MethodName          = $METHOD_NAME
             UserInputHashtable  = $fromSender
         }
-        $this.HashtableValidation($validationParams)
+        $this.InputKeysValidation($validationParams)
         # if hashtable is valid the methodname from sender is used to retried the values requested
-        $myUtilityName          = $fromSender.UtilityName
-        $myUtilitySettings      = $this.UtilitySettings.$myUtilityName
+        $myLabel          = $fromSender.Label
+        $myUtilitySettings      = $this.UtilitySettings.$myLabel
 
         if($null -eq $myUtilitySettings){
             $utilitySettingsExists = $false
@@ -377,7 +390,7 @@ class PSUTILITIES {
         <#
             #example usage:
             $utilitySettingsParams = @{
-                UtilityName = 'DisplayMessage'
+                Label = 'DisplayMessage'
                 UtilityParamsTable = @{
                     DebugOn     = $true
                     Feedback    = $true
@@ -394,14 +407,14 @@ class PSUTILITIES {
             MethodName          = $METHOD_NAME
             UserInputHashtable  = $fromSender
         }
-        $this.HashtableValidation($validationParams)
+        $this.InputKeysValidation($validationParams)
 
-        [string]$myUtilityName = $fromSender.UtilityName
-        $myUtilityParams = $this.GetUtilitySettingsTable(@{UtilityName = $myUtilityName})
+        [string]$myLabel = $fromSender.Label
+        $myUtilityParams = $this.GetUtilitySettingsTable(@{Label = $myLabel})
 
         if(0 -eq $myUtilityParams){
             $exitConditionMet = $true
-            $msgError =  "[{0}]:: {1}" -f $METHOD_NAME, "The utility '$myUtilityName' is dont defined."
+            $msgError =  "[{0}]:: {1}" -f $METHOD_NAME, "There is no settings with the label '$myLabel'."
             Write-Error $msgError; $Error[0]
         }
 
@@ -409,7 +422,7 @@ class PSUTILITIES {
             return
         }
 
-        switch($myUtilityName){
+        switch($myLabel){
             'DisplayMessage' {
                 [array]$UtilityParamList        = $myUtilityParams.keys
                 [array]$InputUtilityParamList   = $fromSender.UtilityParamsTable.keys
@@ -421,6 +434,7 @@ class PSUTILITIES {
                         return
                     }
                 }
+
                 $this.UtilitySettings.DisplayMessage.DebugOn     = $fromSender.UtilityParamsTable.DebugOn
                 $this.UtilitySettings.DisplayMessage.Mute        = $fromSender.UtilityParamsTable.Mute
                 $this.UtilitySettings.DisplayMessage.FeedBack    = $fromSender.UtilityParamsTable.FeedBack 
@@ -445,7 +459,7 @@ class PSUTILITIES {
             MethodName          = $METHOD_NAME
             UserInputHashtable  = $fromSender
         }
-        $this.HashtableValidation($validationParams)
+        $this.InputKeysValidation($validationParams)
         [string]$myCategory  = $fromSender.Category
         [string]$myType      = $fromSender.Type
 
@@ -474,7 +488,7 @@ class PSUTILITIES {
             Write-Error $msgError
         }
         
-        $mySettings  = $this.GetUtilitySettingsTable(@{UtilityName = 'DisplayMessage'})
+        $mySettings  = $this.GetUtilitySettingsTable(@{Label = 'DisplayMessage'})
         [string]$myMessage  = $fromSender.Message
 
         ($_ -eq "success") -and ($mySettings.FeedBack -eq $true)
@@ -499,382 +513,218 @@ class PSUTILITIES {
             }
         }
     }
-    [void]CreateCache([hashtable]$fromSender){
-        <#Instructions -----------------------------------
-            SetCache(@{
-                FolderPath  = './CacheFolder'
-                FileName    = '/LoggingCache.txt' 
-            })
-        #>
-        #region: Validation
-        $METHOD_NAME        = "CreateCache"
-        $this.HashtableValidation(@{
+    [void]AddUtilitySettings([hashtable]$fromSender){
+        $METHOD_NAME =  "AddUtilitySettings"
+
+        $validationParams = @{
             MethodName          = $METHOD_NAME
             UserInputHashtable  = $fromSender
+        }
+        $this.InputKeysValidation($validationParams)
+
+        $myUtilitySettingsValue = $fromSender.Settings
+        $myUtilitySettingLabel  = $fromSender.Label
+        # no settings exists with that lable a.k.a key
+        $canAddLabel = [bool]
+        if(-not($this.GetUtilitySettingsTable(@{Label = $myUtilitySettingLabel}) -eq 0)){
+            $canAddLabel = $false
+        }else{
+            $canAddLabel = $true
+        }
+
+        if($canAddLabel -eq $false){
+            $this.DisplayMessage(@{
+                Message 	= ("[{0}]:: {1}" -f $METHOD_NAME,"There is already settings with the label '$myUtilitySettingLabel'.")
+                Type 		= "debug"
+                Category 	= "debug"
+            })
+            return
+        }
+        
+        $this.UtilitySettings.Add($myUtilitySettingLabel,$myUtilitySettingsValue)
+    }
+    [void]CreateCache([hashtable]$fromSender){
+        $METHOD_NAME =  "CreateCache"
+
+        $validationParams = @{
+            MethodName          = $METHOD_NAME
+            UserInputHashtable  = $fromSender
+        }
+        $this.InputKeysValidation($validationParams)
+
+        $myCacheFolder = $fromSender.FolderPath
+        $platformParameters = PlatformParameters
+
+        # correct sepearator to correct one for the platform
+        if($platformParameters.OS -eq 'onWindows'){
+            $myCacheFolder = $myCacheFolder -replace '/',"\"
+        }
+        if($platformParameters.OS -eq 'onMac'){
+            $myCacheFolder = $myCacheFolder -replace '\\','/'
+        }
+        if($platformParameters.OS -eq 'onLinux'){
+            $myCacheFolder = $myCacheFolder -replace '\\','/'
+        }
+        $charArray = $myCacheFolder.ToCharArray()
+        $lastFolderPathChar = $charArray[-1]
+        
+        # drops trailing separator if there is one
+        if($lastFolderPathChar -eq $platformParameters.Separator){
+            $pathLength = $myCacheFolder.Length
+            $myCacheFolder = $myCacheFolder.Substring(0,($pathLength-1))
+        }
+
+        # dynamic path is given full path if dynamic path is used
+        $isDynamicPath = [bool]
+        if($myCacheFolder -match '(^.)(.*)'){
+            $isDynamicPath = $true
+        }else{
+            $isDynamicPath = $false
+        }
+        if($isDynamicPath){
+            $myCacheFolder  = $myCacheFolder -replace "\.",''
+            $currentPath    = (Get-Location).Path
+            $myCacheFolder  = "{0}{1}"  -f $currentPath,$myCacheFolder
+        }
+
+        $this.CreateItem(@{
+            ItemType = "Folder"
+            Path     = $myCacheFolder
         })
-        #endregion: Validation
-        $msg = "[{0}]> {1}"
-        $messageParams = @{
-            Message     = ''
-            Type        = [string]
-            Category    = [string]
+
+        $myCacheFile = $fromSender.FileName
+        $mycharArray = $myCacheFile.ToCharArray()
+       
+
+        if($platformParameters.OS -eq 'onWindows'){
+            $myCacheFile = $myCacheFile -replace '/',"\"
         }
-        #see if the folder exist
-        $cacheFolder        = $fromSender.FolderPath
-        $cacheFolderExists  = (Test-Path $cacheFolder)
-        $createCacheFolder  = [bool]
-        if($cacheFolderExists -eq $false){
-            $createCacheFolder = $true
-        }else{
-            $createCacheFolder = $false
+        if($platformParameters.OS -eq 'onMac'){
+            $myCacheFile = $myCacheFile -replace '\\','/'
+        }
+        if($platformParameters.OS -eq 'onLinux'){
+            $myCacheFile = $myCacheFile -replace '\\','/'
         }
 
-        $messageParams.Type     = "debug"
-        $messageParams.Category = "debug"
-        if($createCacheFolder){
-            $messageParams.Message  = $msg -f $METHOD_NAME,"Cache folder $cacheFolder needs to be created."
-            $this.DisplayMessage($messageParams)
-        }else{
-            $messageParams.Message  = $msg -f $METHOD_NAME,"Cache folder $cacheFolder already exist."
-            $this.DisplayMessage($messageParams)
+        $leadingSeparator =  $mycharArray[0]
+        if($leadingSeparator -eq $platformParameters.separator){
+            $myCacheFile = $myCacheFile.Substring(1)
         }
 
-        # create the cache folder
-        $messageParams.Category = "feedback"
-        if($cacheFolderExists -eq $false){
-            try{
-                $messageParams.Type     = "success"
-                $messageParams.Message  = $msg -f $METHOD_NAME,"Cache folder $cacheFolder created."
-                $this.CreateItem(@{
-                    ItemType        = "Directory"
-                    Path            = $cacheFolder
-                    WithFeedBack    = $false
-            })
-            }catch{
-                $messageParams.Type = "warning"
-                $messageParams.Message  = $msg -f $METHOD_NAME,"Cache folder $cacheFolder  was not created."
-            }
-            $this.DisplayMessage($messageParams)
+        $myCacheFilePath = "{0}{1}{2}" -f $myCacheFolder,$platformParameters.Separator,$myCacheFile
+        if(-not($myCacheFilePath -match '(.*)(.json$)')){
+           $myCacheFilePath = "{0}{1}" -f $myCacheFilePath,".json"
         }
 
-        # create the cache file
-        $cacheFolderExists  = (Test-Path $cacheFolder)
-        $cacheFileName      = $fromSender.FileName
-        $cacheFilePath      = "$($cacheFolder)$($cacheFileName)"      
-        $createCacheFile    = [bool]
-        $cacheFileExists    = (Test-Path $cacheFilePath)
-        if($cacheFileExists){
-            $createCacheFile = $false
-        }else{
-            $createCacheFile = $true
-        }
+        $this.CreateItem(@{
+            ItemType = "File"
+            Path     = $myCacheFilePath
+        })
 
-        $messageParams.Type     = "debug"
-        $messageParams.Category = "debug"
-        if($createCacheFile -eq $true){
-            $messageParams.Message  = $msg -f $METHOD_NAME,"Cache file $cacheFileName needs to be created."
-            $this.DisplayMessage($messageParams)
-        }else{
-            $messageParams.Message  = $msg -f $METHOD_NAME,"Cache file $cacheFileName already exist."
-            $this.DisplayMessage($messageParams)
-        }
-
-        $messageParams.Category = "feedback"
-        if($createCacheFile -eq $true){
-            try{
-                $messageParams.Type     = "success"
-                $messageParams.Message  = $msg -f $METHOD_NAME,"Cache file $cacheFolder created."
-                $this.CreateItem(@{
-                    ItemType        = "file"
-                    Path            = $cacheFilePath
-                    WithFeedBack    = $false
-            })
-            }catch{
-                $messageParams.Type     = "warning"
-                $messageParams.Message  = $msg -f $METHOD_NAME,"Cache file $cacheFolder  was not created."
-            }
-            $this.DisplayMessage($messageParams)
-        }
+        $myLabel = $fromSender.Label
+        $this.AddUtilitySettings(@{
+            Label       = $myLabel
+            Settings    = @{Path = $myCacheFilePath}
+        })
     }
     [void]CacheConfiguration([hashtable]$fromSender){
-        #region: Validation
-        $METHOD_NAME        = "CacheConfiguration"
-        $exitConditionMet   = $false
-        $msgError           = [string]
-        $this.HashtableValidation(@{
+        $METHOD_NAME =  "CacheConfiguration"
+
+        $validationParams = @{
             MethodName          = $METHOD_NAME
             UserInputHashtable  = $fromSender
+        }
+        $this.InputKeysValidation($validationParams)
+
+
+        $myConfiguration = $fromSender.Configuration
+        $myLabel = $fromSender.Label
+        $myFolderPath = $fromSender.FolderPath
+        $myFileName = $fromSender.FileName
+
+        # if the cache is there, then it will just create the label
+        $this.CreateCache(@{
+            Label       = $myLabel
+            FolderPath  = $myFolderPath
+            FileName    = $myFileName
         })
-        #endregion: Validation
-        #region: message params
-        $msg = "[{0}]> {1}"
-        #endregion: message params
 
-        $myCacheFolderPath  = $fromSender.FolderPath
-        $myCacheFileName    = $fromSender.FileName
-        $myCacheFilePath    = "$($myCacheFolderPath)$($myCacheFileName)"
+        # there will alwasy be a setting to get here
+        $mySettings = $this.GetUtilitySettingsTable(@{Label = $myLabel})
+        $mySettingsPath = $mySettings.Path
 
-        # cache is only created if it already doesnt exist
-        $cacheExist = (Test-Path -Path $myCacheFolderPath)
+        $myCache = Get-Content -path $mySettings.Path
 
-        # messages 
-        if($cacheExist -eq $true){
-            $this.DisplayMessage(@{
-                Message     = ($msg -f $METHOD_NAME, "Cache '$($myCacheFolderPath)' already exists.")
-                Category    = "debug"
-                Type        = "debug"
-            })
-        }
-        if($cacheExist -eq $false){
-            $this.DisplayMessage(@{
-                Message     = ($msg -f $METHOD_NAME, "Cache '$($myCacheFolderPath)' doesnt exists.")
-                Category    = "debug"
-                Type        = "debug"
-            })
-        }
-        if($cacheExist -eq $false){
-            $cacheCreationFailed = [bool]
+        # is the cache nulled out
+        $convertedConfiguration = $null
+        if($null -eq $myCache){
+            $canConvert = [bool]
             try{
-                $cacheCreationFailed = $false
-                $this.CreateCache(@{
-                    FolderPath      = $myCacheFolderPath
-                    FileName        = $myCacheFileName }
-                )
+                $canConvert = $true
+                $convertedConfiguration = $myConfiguration | ConvertTo-Json -ErrorAction Stop
             }catch{
-                $cacheCreationFailed = $true
-                $msgError = "[{0}]:: {1}"
-                $msgError = $msgError -f $METHOD_NAME,"cache was not created"
+                $canConvert = $false
             }
-    
-            if($cacheCreationFailed -eq $true){
-                $exitConditionMet = $true
-            }
-    
-            if($exitConditionMet -eq $true){
-                Write-Error -Message $msgError ; $Error[0]
+
+            if(-not($canConvert)){
+                $msgError = ("[{0]:: {1}") -f $METHOD_NAME,"Configuration is not in the correct json format."
+                Write-Error -Message $msgError; $Error[0]
                 return
             }
+
+            Set-Content -Path $mySettingsPath -Value $convertedConfiguration
         }
 
-        $isValidConfigType = ($fromSender.Configuration).GetType() -eq [hashtable]
-        if($isValidConfigType -eq $false){
-            $exitConditionMet = $true
-            $msgError = "[{0}]:: {1}"
-            $msgError = $msgError -f $METHOD_NAME,"configuration is not in the correct format, needs to be a hashtable."
+        # only when overwrite is true do we care truely refresh 
+        $overWrite = $fromSender.Overwrite
+        if(-not($null -eq $myCache)){
+            if($overWrite){
+                $canConvert = [bool]
+                try{
+                    $canConvert = $true
+                    $convertedConfiguration = $myConfiguration | ConvertTo-Json -ErrorAction Stop
+                }catch{
+                    $canConvert = $false
+                }
+    
+                if(-not($canConvert)){
+                    $msgError = ("[{0]:: {1}") -f $METHOD_NAME,"Configuration is not in the correct json format."
+                    Write-Error -Message $msgError; $Error[0]
+                    return
+                }
+                Set-Content -Path $mySettingsPath -Value $convertedConfiguration
+            }
+        }
+    }
+    [psobject]ReadCache([hashtable]$fromSender){
+        $METHOD_NAME = "ReadCache"
+
+        $myLabel = $fromSender.Label
+        $mySettings = $this.GetUtilitySettingsTable(@{Label = $myLabel})
+
+        $myPath = $mySettings.Path
+        if($myPath -eq 0){
+            $msgError = "[{0}]:: {1}" -f $METHOD_NAME,"There is no setting with label '$myLabel'."
+            Write-Error -Message $msgError; 
+            return $Error[0]
         }
 
-        if($exitConditionMet){
+        $myCacheData = Get-Content -path $myPath
+        $myConvertedCache = $myCacheData | Convertfrom-json
+        return $myConvertedCache
+    }
+    [void]RemoveCache([hashtable]$fromSender){
+        $METHOD_NAME = "RemoveCache"
+        $myLabel = $fromSender.Label
+        $mySettings = $this.GetUtilitySettingsTable(@{Label = $myLabel})
+
+        $myPath = $mySettings.Path
+        if($myPath -eq 0){
+            $msgError = "[{0}]:: {1}" -f $METHOD_NAME,"There is no setting with label '$myLabel'."
             Write-Error -Message $msgError; $Error[0]
             return
         }
-
-        $myConfigurationTable = $fromSender.configuration
-        $myConfigurationJson = $myConfigurationTable | ConvertTo-Json
-        
-        Set-Content -path $myCacheFilePath -Value $myConfigurationJson
-
-        $this.DisplayMessage(@{
-            Message  =  ($msg -f $METHOD_NAME,"Configuration saved to file '$($myCacheFilePath)'.")
-            Type     = 'success'
-            Category = 'Feedback'
-        })
-
-        $configSettings = $this.GetUtilitySettingsTable(@{UtilityName = 'Configuration'})
-        if($configSettings -eq 0){
-            $settingGroupAdded = $true
-            $this.UtilitySettings.Add("Configuration",@{})
-        }
-
-        $configurationLable = $fromSender.ConfigurationLabel
-        if($null -eq $configurationLable){
-            $msgError = "[{0}]:: {1}" -f $METHOD_NAME,"configuration lable cannot be null."
-            Write-Error -Message $msgError;$Error[0]
-            return
-        }
-        
-        [array]$configurationGroupList= $this.UtilitySettings.Configuration.keys
-        if($configurationGroupList -notcontains $configurationLable){
-            $this.UtilitySettings.Configuration.Add($configurationLable,@{
-                FilePath = $myCacheFilePath
-                FolderPath = $myCacheFolderPath
-                FileName = $myCacheFileName
-            })
-        }else{
-            $this.DisplayMessage(@{
-                Message  =  ($msg -f $METHOD_NAME,"Configuration group '$configurationLable' already exists.")
-                Type     = 'debug'
-                Category = 'debug'
-            })
-        }
-    }
-    [psobject]ReadCacheConfiguration([hashtable]$fromSender){
-        <#
-        #region: test ReadCacheConfiguration
-        $fromSender = @{
-            Configuration   = $PSLogger2.Configuration
-            FolderPath      = './CacheFolder'
-            FileName        = '/LoggingCache.txt' 
-        }
-        $UTILITIES.ReadCacheConfiguration($fromSender)
-
-        $fromSender = @{
-            Configuration   = $null
-            FolderPath      = './CacheFolder'
-            FileName        = '/LoggingCache.txt' 
-        }
-        $UTILITIES.ReadCacheConfiguration($fromSender)
-
-        #endregion: test ReadCacheConfiguration
-        #>
-        #region: Validation
-        $METHOD_NAME        = "ReadCacheConfiguration"
-        $msgError           = [string]
-        $this.HashtableValidation(@{
-            MethodName          = $METHOD_NAME
-            UserInputHashtable  = $fromSender
-        })
-        #endregion: Validation
-        #region: message params
-        $msg = "[{0}]> {1}"
-        #endregion: message params
-        $myCacheFolderPath  = $fromSender.FolderPath
-        $myCacheFileName    = $fromSender.FileName
-        $myCacheFilePath    = "$($myCacheFolderPath)$($myCacheFileName)"
-        $myCacheExists = switch(Test-Path -Path $myCacheFilePath){
-            $true   {
-                $this.DisplayMessage(@{
-                    Message = ($msg -f $METHOD_NAME,"The cache file '$($myCacheFilePath)' exists.")
-                    Type = "debug"
-                    Category = "debug"
-                })
-                $true
-            }
-            $false  {
-                $this.DisplayMessage(@{
-                    Message = ($msg -f $METHOD_NAME,"The cache file '$($myCacheFilePath)' doesnt exists.")
-                    Type = "debug"
-                    Category = "debug"
-                })
-                $false}
-        }
-
-        $myConfiguration = $fromSender.Configuration
-        $createCache = switch($myCacheExists){
-            $false { $true }
-            $true { $false }
-        }
-        
-        $isNullConfig = $true
-        if($null -ne $myConfiguration){
-            $isNullConfig = $false
-        }
-
-        if($myCacheExists -eq $false){
-            # cache creation is true, and null is false
-            if(($createCache -eq $true) -and ($isNullConfig -eq $false)){
-                $this.CacheConfiguration(@{
-                    Configuration = ($fromSender.Configuration)
-                    FolderPath      = $myCacheFolderPath
-                    FileName        = $myCacheFileName 
-                })
-            }else{
-                $msgError = "[{0}]:: {1}" -f $METHOD_NAME,"Can only create attempt to createcache when configuration is not null."
-                Write-Error -Message $msgError
-                return $Error[0]
-            }
-        }
-
-        $cacheReadable = [bool]
-        $myConfigObject = $null
-        try{
-            $cacheReadable = $true
-            $myConfigObject = Get-Content -Path $myCacheFilePath -ErrorAction "Stop"
-        }catch{
-            $this.DisplayMessage(@{
-                Message = ($msg -f $METHOD_NAME,"The cache file '$($myCacheFilePath)' content could not be read.")
-                Type = "debug"
-                Category = "debug"
-            })
-            $cacheReadable = $false
-        }
-
-        if($cacheReadable -eq $false){
-            $msgError = "[{0}]:: {1}" -f $METHOD_NAME,"Cache content was not accessable..."
-            Write-Error -Message $msgError
-            return $Error[0]
-        }
-
-        if($null -eq $myConfigObject){
-            $msgError = "[{0}]:: {1}" -f $METHOD_NAME,"Cache does not contain any information"
-            Write-Error -Message $msgError
-            return $Error[0]
-        }
-
-        $isConvertable = [bool]
-        $myConfigTable = $null
-        try{
-            $isConvertable = $true
-            $myConfigTable = $myConfigObject | ConvertFrom-Json -ErrorAction "Stop"
-        }catch{
-            $isConvertable = $false
-        }
-        
-        if(-not($isConvertable)){
-            $msgError = "[{0}]:: {1}" -f $METHOD_NAME,"Cache is not formatted in proper json format."
-            Write-Error -Message $msgError
-            return  $Error[0]
-        }
-
-        $myConfigTable = $this.JsonConverter.ConvertFromJson($myConfigTable)
-        return $myConfigTable
-    }
-    [psobject]ReadMyCacheConfiguration([hashtable]$fromSender){
-        #region: Validation
-        $METHOD_NAME        = "ReadMyCacheConfiguration"
-        #$exitConditionMet   = $false
-        #$msgError           = [string]
-        $this.HashtableValidation(@{
-            MethodName          = $METHOD_NAME
-            UserInputHashtable  = $fromSender
-        })
-        #endregion: Validation
-        #region: message params
-        #$msg = "[{0}]> {1}"
-        #endregion: message params
-        $ConfigSettings = $this.GetUtilitySettingsTable(@{UtilityName = 'Configuration'}).($fromSender.ConfigurationLabel)
-        return $this.ReadCacheConfiguration(@{
-            FileName = $ConfigSettings.FileName
-            FolderPath = $ConfigSettings.FolderPath
-            Configuration = $null
-        })
-    }
-    [void]UpdateCacheConfiguration([hashtable]$fromSender){
-        #region: Validation
-        $METHOD_NAME        = "UpdateCacheConfiguration"
-        #$exitConditionMet   = $false
-        #$msgError           = [string]
-        $this.HashtableValidation(@{
-            MethodName          = $METHOD_NAME
-            UserInputHashtable  = $fromSender
-        })
-        #endregion: Validation
-        $updatable = $this.GetUtilitySettingsTable(@{UtilityName = 'Configuration'})
-        if($updatable -eq 0){
-            $this.DisplayMessage(@{
-                Message = "There is no conifguration defined to update."
-                Type = "debug"
-                Category = "debug"
-            })
-        }
-        [string]$utilitySettingLabel    = $fromSender.ConfigurationLabel
-        $myConfiguration  = $this.GetUtilitySettingsTable(@{
-            UtilityName = 'Configuration'})
-        $myConfigurationSettings = $myConfiguration.$utilitySettingLabel
-        $this.CacheConfiguration(@{
-            Configuration       = $fromSender.Configuration
-            FolderPath          = $myConfigurationSettings.FolderPath
-            FileName            = $myConfigurationSettings.FileName
-            ConfigurationLabel  = $utilitySettingLabel
-        })
+        $this.UtilitySettings.Remove($myLabel)
+        Remove-Item -Path $myPath
     }
 }
