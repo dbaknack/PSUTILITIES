@@ -43,6 +43,7 @@ class PSUTILITIES {
         CreateCache                 = @("Label","FolderPath","FileName")
         CacheConfiguration          = @("Label","FolderPath","FileName","Configuration","Overwrite")
         ReadCache                   = @("Label")
+        RemoveCache                 = @("Label")
     }
     <#  Description -------------------------------------------------------
             This class parameter is how you control some of the itilities
@@ -293,13 +294,11 @@ class PSUTILITIES {
         # all methods define there method name
         $METHOD_NAME        = "CreateItem"
         $exitConditionMet   = $false
-        # the validation params are defined, making sure the user inputs the correct properties
-        $validationParams = @{
+
+        $this.InputKeysValidation(@{
             MethodName          = $METHOD_NAME
             UserInputHashtable  = $fromSender
-        }
-
-        $this.InputKeysValidation($validationParams)
+        })
 
         [string]$path       = $fromSender.Path
         [string]$itemType   = $fromSender.ItemType
@@ -368,14 +367,13 @@ class PSUTILITIES {
         $METHOD_NAME            = "GetUtilitySettingsTable"
         $utilitySettingsExists  = [bool]
         # the validation params are defined, making sure the user inputs the correct properties
-        $validationParams = @{
+        $this.InputKeysValidation(@{
             MethodName          = $METHOD_NAME
             UserInputHashtable  = $fromSender
-        }
-        $this.InputKeysValidation($validationParams)
+        })
         # if hashtable is valid the methodname from sender is used to retried the values requested
-        $myLabel          = $fromSender.Label
-        $myUtilitySettings      = $this.UtilitySettings.$myLabel
+        $myLabel            = $fromSender.Label
+        $myUtilitySettings  = $this.UtilitySettings.$myLabel
 
         if($null -eq $myUtilitySettings){
             $utilitySettingsExists = $false
@@ -403,11 +401,10 @@ class PSUTILITIES {
         $METHOD_NAME        = "UpdateUtilitySettings"
         $exitConditionMet   = $false
         # the validation params are defined, making sure the user inputs the correct properties
-        $validationParams = @{
+        $this.InputKeysValidation(@{
             MethodName          = $METHOD_NAME
             UserInputHashtable  = $fromSender
-        }
-        $this.InputKeysValidation($validationParams)
+        })
 
         [string]$myLabel = $fromSender.Label
         $myUtilityParams = $this.GetUtilitySettingsTable(@{Label = $myLabel})
@@ -455,11 +452,10 @@ class PSUTILITIES {
         $METHOD_NAME        = "DisplayMessage"
         $exitConditionMet   = $false
         # the validation params are defined, making sure the user inputs the correct properties
-        $validationParams = @{
+        $this.InputKeysValidation(@{
             MethodName          = $METHOD_NAME
             UserInputHashtable  = $fromSender
-        }
-        $this.InputKeysValidation($validationParams)
+        })
         [string]$myCategory  = $fromSender.Category
         [string]$myType      = $fromSender.Type
 
@@ -516,11 +512,10 @@ class PSUTILITIES {
     [void]AddUtilitySettings([hashtable]$fromSender){
         $METHOD_NAME =  "AddUtilitySettings"
 
-        $validationParams = @{
+        $this.InputKeysValidation(@{
             MethodName          = $METHOD_NAME
             UserInputHashtable  = $fromSender
-        }
-        $this.InputKeysValidation($validationParams)
+        })
 
         $myUtilitySettingsValue = $fromSender.Settings
         $myUtilitySettingLabel  = $fromSender.Label
@@ -546,11 +541,10 @@ class PSUTILITIES {
     [void]CreateCache([hashtable]$fromSender){
         $METHOD_NAME =  "CreateCache"
 
-        $validationParams = @{
+        $this.InputKeysValidation(@{
             MethodName          = $METHOD_NAME
             UserInputHashtable  = $fromSender
-        }
-        $this.InputKeysValidation($validationParams)
+        })
 
         $myCacheFolder = $fromSender.FolderPath
         $platformParameters = PlatformParameters
@@ -630,11 +624,10 @@ class PSUTILITIES {
     [void]CacheConfiguration([hashtable]$fromSender){
         $METHOD_NAME =  "CacheConfiguration"
 
-        $validationParams = @{
+        $this.InputKeysValidation(@{
             MethodName          = $METHOD_NAME
             UserInputHashtable  = $fromSender
-        }
-        $this.InputKeysValidation($validationParams)
+        })
 
 
         $myConfiguration = $fromSender.Configuration
@@ -698,7 +691,10 @@ class PSUTILITIES {
     }
     [psobject]ReadCache([hashtable]$fromSender){
         $METHOD_NAME = "ReadCache"
-
+        $this.InputKeysValidation(@{
+            MethodName          = $METHOD_NAME
+            UserInputHashtable  = $fromSender
+        })
         $myLabel = $fromSender.Label
         $mySettings = $this.GetUtilitySettingsTable(@{Label = $myLabel})
 
@@ -714,7 +710,12 @@ class PSUTILITIES {
         return $myConvertedCache
     }
     [void]RemoveCache([hashtable]$fromSender){
-        $METHOD_NAME = "RemoveCache"
+        $METHOD_NAME        = "RemoveCache"
+        $this.InputKeysValidation(@{
+            MethodName          = $METHOD_NAME
+            UserInputHashtable  = $fromSender
+        })
+        
         $myLabel = $fromSender.Label
         $mySettings = $this.GetUtilitySettingsTable(@{Label = $myLabel})
 
