@@ -47,7 +47,6 @@ $PSUTILITIES.CreateCache(@{
     FileName    = "LoggingCache5"
 })
 
-
 # cache will only ignore overwrite if its null to begin with
 # when overwrite is true, it till update it, when its false, it wont update it
 $PSUTILITIES.CacheConfiguration(@{
