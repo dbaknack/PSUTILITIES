@@ -1,57 +1,84 @@
 $ErrorActionPreference = "Stop"
-Import-Module .\PSUTILITIES.psd1
-$PSUTILITIES =  PSUTILITIES
-Remove-Module PSUTILITIES
+Import-Module .\PSUTILITIES ; $PSUTILITIES =  PSUTILITIES
 
-$PSUTILITIES.GetExamples('CreateItem')
+$PSUTILITIES.GetExamples('CacheConfiguration')
 
 $PSUTILITIES.CacheConfiguration(@{
-    Label               = "TestConfig"
+    Label               = "my-Item-label"
     Configuration       = @{}
-    FolderPath          = ".\TEST2"
-    FileName            = "\myConfig1.json"
+    FolderPath          = ".\foldername\"
+    FileName            = "\mycache"
 })
 
-$PSUTILITIES.GetUtilitySettingsTable(@{Label = 'Configuration'})
-$PSUTILITIES.GetUtilitySettingsTable(@{Label = 'DisplayMessage'})
+
+Class Example{
+    $PSUtil = (PSUTILITIES)
+
+    
+    [void]MyMethod([hashtable]$fromSender){
+        $this.PSUtil.InputKeysValidation(@{
+            MethodName          = 'MyMethod'
+            UserInputHashtable  = $fromSender
+        })
+    }
+}
+
+$Example.PSUtil.INPUT_METHOD_PARAMS_TABLE.MyMethod
+
+$Example.PSUtil.GetUtilityMethodList(@{GetAllMyUtilities = $true})
+$Example.PSUtil.GetMethodParamstable(@{ MethodName = 'MyMethod'})
+$Example.PSUtil.AddMethodParamstable(@{MethodName = 'MyMethod';KeysList = @('key1','key2')})
+$Example.PSUtil.InputKeysValidation(@{
+    MethodName          = 'MyMethod'
+    UserInputHashtable  = $fromSender
+})
+$fromSender
+$Example = [Example]::new()
+$Example.MyMethod(@{
+ 
+})
+
+$PSUTILITIES.GetUtilitySettingsTable(@{Label = 'my-Item-label'})
 
 
 $PSUTILITIES.AddMethodParamstable(@{
-    MethodName = 'TestItemExists'
+    MethodName = 'MyMethodName'
     KeysList = @('key1','key2')
 })
-$PSUTILITIES.GetMethodParamstable(@{ MethodName = 'TestItemExists'})
+
+$PSUTILITIES.GetMethodParamstable(@{ MethodName = 'MyMethodName'})
 $PSUTILITIES.GetUtilityMethodList(@{GetAllMyUtilities = $true})
 
 $PSUTILITIES.CreateItem(@{
     ItemType = "Folder"
-    Path     = ".\CacheFolder"
+    Path     = ".\FolderName"
 })
 
 $PSUTILITIES.CreateItem(@{
     ItemType = "File"
-    Path     = ".\CacheFolder\LoggingCache22.txt"
+    Path     = ".\FolderName\fileName.txt"
 })
 
 
 $PSUTILITIES.AddUtilitySettings(@{
-    Label = "Test"
-    Settings = @{This = "mySettings"}
+    Label = "SomeSetting"
+    Settings = @{This = "my setting"}
 })
-$PSUTILITIES.GetUtilitySettingsTable(@{Label = "Test"})
+
+$PSUTILITIES.GetUtilitySettingsTable(@{Label = "SomeSetting"})
 
 
 $PSUTILITIES.CreateCache(@{
-    Label       = "LoggingCache5"
+    Label       = "CacheLabel"
     FolderPath  = ".\CacheFolder"
-    FileName    = "LoggingCache5"
+    FileName    = "CacheFileName"
 })
 
 # cache will only ignore overwrite if its null to begin with
-# when overwrite is true, it till update it, when its false, it wont update it
+# when overwrite is true, it will update it, when its false, it wont update it
 $PSUTILITIES.CacheConfiguration(@{
-    Configuration = @{}
-    Label       = "Values1"
+    Configuration = @{MyKey = "MyValue"}
+    Label       = "CacheLabel"
     FolderPath  = ".\CacheFolder"
     FileName    = "LoggingCache6"
     Overwrite   = $true
@@ -60,9 +87,9 @@ $PSUTILITIES.CacheConfiguration(@{
 # remeber that in order to read the cache you would have to first cached something
 # otherwsie you dont have a label to link to it
 $PSUTILITIES.ReadCache(@{
-    Label = "Values1"
+    Label = "CacheLabel"
 })
 
 $PSUTILITIES.RemoveCache(@{
-    Label = "Values1"
+    Label = "CacheLabel"
 })
