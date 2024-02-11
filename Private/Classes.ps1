@@ -59,22 +59,66 @@ class PSUTILITIES {
     [psobject]GetExamples([string]$MethodName){
         $exampleTable = @{
             CreateItem = '
-            # Usage Decription:
-            #   -   CreateItem      Use this when you need to create a folder or file.
-            #
-            # --------------------------------------------------------------------------------------------------------
-            # Parameter Description:
-            #   -   ItemPath:       Can either be "Directory" or "File".
-            #   -   Path:           When ItemPath is "Directory", do not use a trailing "{0}". Can be either
-                                    a dynamic or full path.
-                                    When ItemPath is "File", either dynamic or a full path, include the file extension.
-            #
-            # --------------------------------------------------------------------------------------------------------
-            # Example:
-                CreateItem(
-                    ItemPath        = "Directory"
-                    Path            = ".{0}FolderName"
-                )' -f (PlatformParameters).Separator
+# --------------------------------------------------------------------------------------------------------
+# Usage Decription:
+#   -   CreateItem      Use this when you need to create a folder or file.
+# --------------------------------------------------------------------------------------------------------
+# Parameter Description:
+#   -   ItemPath:       Can either be "Directory" or "File".
+#   -   Path:           When ItemPath is "Directory", do not use a trailing "{0}". Can be either
+                        a dynamic or full path.
+                        When ItemPath is "File", either dynamic or a full path, include the file extension.
+# --------------------------------------------------------------------------------------------------------
+# Example:
+    CreateItem(@{1}
+        ItemPath        = "Directory"
+        Path            = ".{0}FolderName"
+    {2})
+# --------------------------------------------------------------------------------------------------------' -f (PlatformParameters).Separator,'{','}'
+CacheConfiguration = '
+# --------------------------------------------------------------------------------------------------------
+# Usage Decription:
+#   -   CacheConfiguration      Use this when you need to create a cached object.
+# --------------------------------------------------------------------------------------------------------
+# Considerations:
+#   -   Internally the object it referenced. If you happen to delete the file created, the referece to it
+#       will still exists in your session.
+#   -   To avoid issues with the reference to a non exists object once the file is deleted, you need to 
+#       use:
+
+        RemoveCache(@{1}
+            Label = "TestConfig"
+        {2})
+
+#   -   You can validate that the refence is gone by using the following commmand:
+
+        GetUtilitySettingsTable(@{1}Label = "TestConfig"{2})
+# --------------------------------------------------------------------------------------------------------
+# Parameter Description:
+#   -   Label:          Are used as keys to retreive the path to your created cache.
+#   -   Configuration:  This is the content, ,make sure its a hashtable.
+#   -   FolderPath:     This is the path to the folder containing your file. Will be created if it doesnt 
+#                       already exists.
+#   -   FileName:       This the name given to your cache.Note that you can include the .json extension,
+#                       on your can omit it.
+# --------------------------------------------------------------------------------------------------------
+
+    # Example (1): Here we see an example where the file name value has the ".json" extension.
+    CacheConfiguration(@{1}
+        Label               = "TestConfig"
+        Configuration       =  @{1}{2}
+        FolderPath          = ".{0}TEST2"
+        FileName            = "{0}myConfig1.json"
+    {2})
+
+    # Example (1): Here we see an example where the file name value has the ".json" omited.
+    CacheConfiguration(@{1}
+        Label               = "TestConfig"
+        Configuration       =  @{1}{2}
+        FolderPath          = ".{0}TEST2"
+        FileName            = "{0}myConfig1"
+    {2})
+# --------------------------------------------------------------------------------------------------------' -f (PlatformParameters).Separator,'{','}'
         }
         return $exampleTable.$MethodName
     }
@@ -175,6 +219,7 @@ class PSUTILITIES {
         [array]$USER_PARAMS_LIST    = $fromSender.Keys
         $exitConditionMet           = $false
 
+        
         # guard clause: handle a null passed parameter
         if($USER_PARAMS_LIST.count -eq 0){
             $exitConditionMet = $true
@@ -642,7 +687,7 @@ class PSUTILITIES {
             FileName    = $myFileName
         })
 
-        # there will alwasy be a setting to get here
+        # there will always be a setting to get here
         $mySettings = $this.GetUtilitySettingsTable(@{Label = $myLabel})
         $mySettingsPath = $mySettings.Path
 
@@ -717,10 +762,10 @@ class PSUTILITIES {
         })
         
         $myLabel = $fromSender.Label
-        $mySettings = $this.GetUtilitySettingsTable(@{Label = $myLabel})
+        $mySettings = $this.GetUtilitySettingsTable(@{Label = "$myLabel"})
 
         $myPath = $mySettings.Path
-        if($myPath -eq 0){
+        if($null -eq $myPath){
             $msgError = "[{0}]:: {1}" -f $METHOD_NAME,"There is no setting with label '$myLabel'."
             Write-Error -Message $msgError; $Error[0]
             return
